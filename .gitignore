@@ -3,3 +3,5 @@ __pycache__
 .env
 venv
 todo/__pycache__
+todo/database/__pycache__
+todo/database/DB/todo.db
