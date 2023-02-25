@@ -14,8 +14,8 @@ Base = declarative_base()
 engine = create_engine(settings.db_url, connect_args={"check_same_thread": False}, echo=True)
 
 
-# Создаём сессию для работы с БД
 def get_db():
+    """Создание сессий для работы с БД"""
     db = SessionLocal()
     try:
         yield db
