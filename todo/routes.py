@@ -1,5 +1,12 @@
+from fastapi_users import fastapi_users, FastAPIUsers
+
 from todo.app import app, templates
 from fastapi import Request, Depends, Form
+
+from todo.auth.auth import auth_backend
+from todo.auth.database import User
+from todo.auth.manager import get_user_manager
+from todo.auth.schemas import UserRead, UserCreate
 from todo.database.base import get_db
 from sqlalchemy.orm import Session
 from todo.models import ToDo
@@ -26,7 +33,6 @@ def add(title: str = Form(...), db_session: Session = Depends(get_db)):
     db_session.add(new_todo)
     db_session.commit()
 
-    # Редирект на главную
     url = app.url_path_for('home')
     return RedirectResponse(url=url, status_code=HTTP_303_SEE_OTHER)
 
@@ -38,7 +44,6 @@ def update(todo_id: int, db_session: Session = Depends(get_db)):
     todo.completed = not todo.completed
     db_session.commit()
 
-    # Редирект на главную
     url = app.url_path_for('home')
     return RedirectResponse(url=url, status_code=HTTP_302_FOUND)
 
@@ -50,6 +55,30 @@ def delete(todo_id: int, db_session: Session = Depends(get_db)):
     db_session.delete(todo)
     db_session.commit()
 
-    # Редирект на главную
     url = app.url_path_for('home')
     return RedirectResponse(url=url, status_code=HTTP_302_FOUND)
+
+
+fastapi_users = FastAPIUsers[User, int](
+    get_user_manager,
+    [auth_backend],
+)
+
+app.include_router(
+    fastapi_users.get_auth_router(auth_backend),
+    prefix="/auth/jwt",
+    tags=["auth"],
+)
+
+app.include_router(
+    fastapi_users.get_register_router(UserRead, UserCreate),
+    prefix="/auth",
+    tags=["auth"],
+)
+
+current_user = fastapi_users.current_user()
+
+
+@app.get("/protected-route")
+def protected_route(user: User = Depends(current_user)):
+    return f"Hello, {user.username}"
